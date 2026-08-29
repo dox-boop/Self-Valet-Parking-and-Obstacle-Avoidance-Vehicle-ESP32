@@ -45,6 +45,7 @@ The hardware for this prototype was selected to balance computational overhead w
 | **Caster Wheel** | 1 | Small Metal Ball Type | Chassis Balancing | Acts as a frictionless third point of contact in the rear of the chassis, allowing for smooth zero-radius differential turning. Provided with the chassis in our case. |
 | **Power Supply** | 1 | Lab Bench Voltage Regulators | Instead of an onboard battery, external lab regulators were used to supply the necessary voltages (12V and 5V) during prototyping and testing. |
 | **Hardware Misc.** | 1 | Breadboard, Jumper Wires, Soldering kit | Circuit Routing | All the other components which are required for basic circuit design in any electronics project. |
+
 ---
 
 ## 3. Hardware Assembly & Wiring Manual
@@ -136,6 +137,8 @@ The firmware is designed with an O(1) time complexity approach per loop iteratio
 ---
 
 ## 8. Complete Firmware Implementation
+
+**Development Environment Setup:** The firmware for this project was developed using the **Arduino IDE**. Before compiling and uploading the code to the microcontroller, ensure that the board configuration is explicitly set to **ESP32 Dev Module** in the IDE's Boards Manager.
 
 ```cpp
 /**
