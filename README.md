@@ -1,7 +1,6 @@
 # Autonomous Valet Parking & Multi-Sensor Obstacle Avoidance Vehicle
 
 **Institution:** IIIT Hyderabad  
-**Team:** Bijli_Ki_Tigdi (Daksh Bhardwaj & Pramodh)  
 **Platform:** ESP32 (C++ / Arduino Core)  
 **Domain:** Embedded Systems, Autonomous Navigation, Spatial Computing  
 
