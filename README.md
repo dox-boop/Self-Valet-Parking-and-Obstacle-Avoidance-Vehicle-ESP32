@@ -42,11 +42,10 @@ The hardware for this prototype was selected to balance computational overhead w
 | **IMU Sensor** | 1 | MPU-6050 (6-DOF MEMS) | Inertial Measurement | Communicates via I2C. Provides real-time 3-axis accelerometer and 3-axis gyroscope data to monitor chassis orientation, tilt, and yaw drift during maneuvers. |
 | **Geared DC Motor** | 2 | 12V, 200-300 RPM High Torque | Primary Propulsion | Drives the main wheels. The gear reduction provides sufficient torque to move the heavy chassis from a dead stop without stalling. |
 | **Robot Chassis** | 1 | 2WD Iron Stamped Frame | Structural Integrity | Provides a rigid, non-flexing mechanical base to mount all electronic components, preventing sensor misalignment during physical impact. |
-| **Drive Wheels** | 2 | 65mm Rubber Grip | Traction | High-friction rubber tread ensures predictable acceleration and minimizes wheel slip on smooth indoor surfaces, which is critical for turning accuracy. |
-| **Caster Wheel** | 1 | Small Metal Ball Type | Chassis Balancing | Acts as a frictionless third point of contact in the rear of the chassis, allowing for smooth zero-radius differential turning. |
-| **Primary Battery** | 1 | 12V Pack (Li-ion / Lead-Acid) | Main Power Source | Supplies the raw, unregulated high-current surges demanded by the DC motors during acceleration and reversing phases. |
+| **Drive Wheels** | 2 | 65mm Rubber Grip | Traction | High-friction rubber tread ensures predictable acceleration and minimizes wheel slip on smooth indoor surfaces, which is critical for turning accuracy. Provided with the chassis in our case. |
+| **Caster Wheel** | 1 | Small Metal Ball Type | Chassis Balancing | Acts as a frictionless third point of contact in the rear of the chassis, allowing for smooth zero-radius differential turning. Provided with the chassis in our case. |
 | **Voltage Regulator** | 1 | LM2596 Buck Converter / 7805 | Logic Power Isolation | Steps down the noisy 12V motor rail to a clean, highly regulated 5V output to safely power the ESP32 and the HC-SR04 sensor array without triggering brownouts. |
-| **Hardware Misc.** | 1 | Toggle Switch, Breadboard, Jumper Wires | Circuit Routing | Enables hard power cut-offs, safe proto-typing connections, and structured wiring harnesses between the logic board and actuators. |
+| **Hardware Misc.** | 1 | Breadboard, Jumper Wires | Circuit Routing | All the other components which are required for basic circuit design in any electronics project. |
 
 ---
 
