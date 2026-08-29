@@ -1,6 +1,8 @@
 # Autonomous Valet Parking & Multi-Sensor Obstacle Avoidance Vehicle
 
 **Institution:** IIIT Hyderabad  
+**Team:** Bijli_Ki_Tigdi (Daksh Bhardwaj & Pramodh)  
+**Roll Number:** 2025102066 (Daksh)
 **Platform:** ESP32 (C++ / Arduino Core)  
 **Domain:** Embedded Systems, Autonomous Navigation, Spatial Computing  
 
@@ -21,11 +23,11 @@
 
 ## 1. Project Abstract & Overview
 
-As the automotive industry pivots toward fully autonomous environments, Advanced Driver Assistance Systems (ADAS) and Automated Valet Parking (AVP) have become critical research domains. This project scales down the complex architectural requirements of an AVP system into an embedded microcontroller environment. 
+As the automotive industry pivots toward fully autonomous environments, Automated Valet Parking (AVP) has become a critical research domain. This project scales down the complex architectural requirements of an AVP system into a localized, microcontroller-driven environment. 
 
-We engineered a localized, differential-drive robotic vehicle capable of navigating unpredictable indoor corridors, dynamically routing around obstacles, and identifying structurally enclosed spaces that match the geometric profile of a parking bay. Once a valid parking slot is detected, the vehicle autonomously maneuvers into the space, halts all kinetic movement, and enters a secured parked state. Furthermore, the system continuously monitors its egress path and executes an "unpark" routine the moment the exit route is cleared.
+We engineered a differential-drive robotic vehicle capable of navigating unpredictable indoor corridors, dynamically routing around obstacles without touching the walls, and identifying structurally enclosed spaces that match the geometric profile of a parking bay. By using a strict three-directional threshold logic, the vehicle assumes it has successfully parked the moment it is surrounded by obstacles (walls) on its left, right, and front flanks simultaneously. Once a valid parking slot is detected, the vehicle halts all kinetic movement and enters a secured parked state. It continuously monitors its egress path and executes an "unpark" routine when the exit route clears.
 
-By utilizing an ESP32 microcontroller over a traditional 8-bit Arduino UNO R3, the system benefits from a 32-bit dual-core architecture running at 240 MHz. This allows for rapid, non-blocking execution of the state-machine matrix, ensuring that sensor polling, floating-point math for inertial offset calculations, and Pulse Width Modulation (PWM) signal generation occur with near-zero latency. 
+By utilizing an ESP32 microcontroller, the system benefits from a 32-bit dual-core architecture running at 240 MHz, ensuring that multi-directional sensor polling and Pulse Width Modulation (PWM) signal generation occur with near-zero latency.
 
 ---
 
@@ -43,9 +45,8 @@ The hardware for this prototype was selected to balance computational overhead w
 | **Robot Chassis** | 1 | 2WD Iron Stamped Frame | Structural Integrity | Provides a rigid, non-flexing mechanical base to mount all electronic components, preventing sensor misalignment during physical impact. |
 | **Drive Wheels** | 2 | 65mm Rubber Grip | Traction | High-friction rubber tread ensures predictable acceleration and minimizes wheel slip on smooth indoor surfaces, which is critical for turning accuracy. Provided with the chassis in our case. |
 | **Caster Wheel** | 1 | Small Metal Ball Type | Chassis Balancing | Acts as a frictionless third point of contact in the rear of the chassis, allowing for smooth zero-radius differential turning. Provided with the chassis in our case. |
-| **Voltage Regulator** | 1 | LM2596 Buck Converter / 7805 | Logic Power Isolation | Steps down the noisy 12V motor rail to a clean, highly regulated 5V output to safely power the ESP32 and the HC-SR04 sensor array without triggering brownouts. |
-| **Hardware Misc.** | 1 | Breadboard, Jumper Wires | Circuit Routing | All the other components which are required for basic circuit design in any electronics project. |
-
+| **Power Supply** | 1 | Lab Bench Voltage Regulators | Instead of an onboard battery, external lab regulators were used to supply the necessary voltages (12V and 5V) during prototyping and testing. |
+| **Hardware Misc.** | 1 | Breadboard, Jumper Wires, Soldering kit | Circuit Routing | All the other components which are required for basic circuit design in any electronics project. |
 ---
 
 ## 3. Hardware Assembly & Wiring Manual
@@ -53,9 +54,9 @@ The hardware for this prototype was selected to balance computational overhead w
 Due to the specific architecture of the ESP32, standard default pins often conflict with internal flash memory or boot strapping. We mapped the components to safe, dedicated GPIOs.
 
 ### A. Ultrasonic Distance Sensor Array
-The HC-SR04 sensors require a 5V VCC but the ESP32 is a 3.3V device. The ESP32 GPIOs are generally tolerant to short 5V echo pulses, but a voltage divider on the ECHO pins is recommended for long-term safety.
+The array acts as the vehicle's spatial awareness. Three HC-SR04 sensors are positioned to create a 180-degree forward-facing field of view.
 * **Left Sensor:** `Trig` -> `GPIO 25` | `Echo` -> `GPIO 33`
-* **Right Sensor:** `Trig` -> `GPIO 32` | `Echo` -> `GPIO 35` *(Note: GPIO 35 is an input-only pin, perfect for reading echoes).*
+* **Right Sensor:** `Trig` -> `GPIO 32` | `Echo` -> `GPIO 35` *(Note: GPIO 35 is an input-only pin).*
 * **Front Sensor:** `Trig` -> `GPIO 26` | `Echo` -> `GPIO 14`
 
 ### B. L298N Dual H-Bridge Motor Driver
@@ -67,36 +68,30 @@ Ensure the L298N ground is tied to the ESP32 ground. Remove the ENA/ENB jumpers 
 The default I2C pins (21/22) were remapped to avoid layout congestion.
 * **Data Line (`SDA`):** `GPIO 17`
 * **Clock Line (`SCL`):** `GPIO 19`
-* **Power:** `VCC` -> `3.3V` or `5V` (depending on module regulator) | `GND` -> `Common GND`
+* **Power:** `VCC` -> `3.3V` / `5V` | `GND` -> `Common GND`
 
 ---
 
 ## 4. Power Distribution & Circuit Architecture
 
-Power management in robotics is arguably more critical than logic, as motor stalls can instantly crash a microcontroller. 
+Because this prototype was tethered to lab bench power rather than an onboard battery pack, power routing required strict attention to voltage levels to protect the logic circuits.
 
-### The Ground Loop & Noise Problem
-DC motors are electrically noisy. When the L298N driver reverses polarity to the motors (changing direction), massive flyback voltage spikes are generated. If the ESP32 and the motors share an unregulated power rail, these voltage spikes will trigger the ESP32's internal Brown-Out Detector (BOD), causing a system reboot loop.
+### The Split-Rail Lab Setup
+DC motors generate massive flyback voltage spikes when changing direction. If the ESP32 and the motors shared a single unregulated line, these spikes would trigger the ESP32's internal Brown-Out Detector (BOD), causing a system reboot loop.
 
-### The Engineered Solution: Star Grounding & Regulated Rails
-To solve this, we implemented a split-rail power topology:
-1. **The 12V High-Current Rail:** The 12V battery connects strictly to the 12V input terminal of the L298N driver. This rail handles raw, noisy current surges up to 2-3 Amps.
-2. **The 5V Logic Rail:** The 12V line is spliced and fed into the LM2596 Buck Converter (or 7805 regulator). This component magnetically isolates the logic side. The clean 5V output powers the ESP32's `VIN` pin and provides the steady voltage required by all three HC-SR04 sensors.
-3. **Star Grounding:** The ground pins of the battery, L298N, Buck Converter, ESP32, and all sensors are tied together at a single centralized point to ensure a universal 0V reference without ground loops.
+To prevent this, the circuit utilizes a split-rail power topology sourced from the lab regulators:
+1. **The 12V High-Current Rail:** The lab power supply's 12V output connects strictly to the 12V input terminal of the L298N driver. This rail handles the raw, noisy current required by the DC motors.
+2. **The 5V Logic Rail:** A secondary regulated 5V line from the lab equipment is routed directly to the logic side. This clean 5V output powers the ESP32's `VIN` pin and provides the steady voltage required by the three HC-SR04 sensors.
+3. **Star Grounding:** The ground lines from the 12V supply, the 5V supply, the L298N, the ESP32, and all sensors are tied together at a single centralized point. This creates a universal 0V reference without creating destructive ground loops.
 
 ---
 
 ## 5. Kinematic Model & Drive System Theory
 
-The vehicle operates on a **Differential Drive Kinematic Model**. Unlike standard Ackermann steering found in passenger cars (where front wheels pivot on an axle), a differential drive system relies on two independently driven parallel wheels and a frictionless rear caster for balance. 
-
-### Kinematic Equations
-The motion of the robot is entirely dictated by the rotational velocities of the left wheel (V_L) and the right wheel (V_R).
-* **Linear Velocity (V):** V = (V_R + V_L) / 2
-* **Angular Velocity (W):** W = (V_R - V_L) / L *(where L is the track width between the two wheels)*
+The vehicle operates on a **Differential Drive Kinematic Model**. A differential drive system relies on two independently driven parallel wheels and a frictionless rear caster for balance. 
 
 ### Steering Dynamics via PWM
-We translate this physical model into embedded C++ logic by manipulating V_R and V_L using the L298N driven by 8-bit PWM signals (0-255).
+We translate this physical model into embedded C++ logic by manipulating the left and right wheels using the L298N driven by 8-bit PWM signals (0-255).
 * **Straight Line Cruise:** `ENA = 200`, `ENB = 200`. Both motors receive identical average voltage, resulting in a theoretical straight path.
 * **Sweeping Turn:** Abruptly stopping one wheel to turn causes skid steering. Skidding causes the chassis to shudder, introducing massive vibration noise into the ultrasonic sensor readings. Instead, our algorithm employs a sweeping arc differential. To turn left, `ENA` (Left Motor) is dropped to `120` while `ENB` (Right Motor) is maintained at `200`. This reduces the angular velocity on the inner radius, pivoting the chassis smoothly around the slower wheel.
 
@@ -105,35 +100,31 @@ We translate this physical model into embedded C++ logic by manipulating V_R and
 ## 6. Sensor Theory & Physics of Operation
 
 ### A. HC-SR04 Ultrasonic Time-of-Flight (ToF)
-The navigation relies heavily on the Time-of-Flight principle applied to acoustic waves.
 1. **Trigger Phase:** The ESP32 sends a 10-microsecond `HIGH` pulse to the sensor.
 2. **Acoustic Burst:** The transmitter emits an 8-cycle sonic burst at 40 kHz.
 3. **Echo Phase:** The sonic waves bounce off nearby obstacles and return. The `ECHO` pin outputs a `HIGH` signal for the exact duration that the sound wave took to travel out and back.
-4. **Mathematical Conversion:** The speed of sound in dry air at 20 degrees Celsius is approximately 343 meters per second (0.0343 cm/us). 
+4. **Mathematical Conversion:** The speed of sound in dry air at 20°C is approximately 343 meters per second (0.0343 cm/us). 
    `Distance (cm) = (Time in microseconds * 0.0343) / 2`
-   The division by 2 isolates the one-way distance to the obstacle.
 
 ### B. MPU-6050 Micro-Electro-Mechanical Systems (MEMS)
-The MPU-6050 combines a 3-axis gyroscope and a 3-axis accelerometer on a single silicon die. Inside the chip, microscopic proof masses are suspended by silicon springs. When the vehicle accelerates or rotates, inertia causes these masses to deflect. This deflection changes the internal capacitance, which is converted into a voltage, digitized by a 16-bit ADC, and read by the ESP32 over I2C to maintain spatial awareness.
+Inside the MPU-6050 chip, microscopic proof masses are suspended by silicon springs. When the vehicle accelerates or rotates, inertia causes these masses to deflect. This deflection changes the internal capacitance, which is converted into a voltage, digitized by a 16-bit ADC, and read by the ESP32 over I2C to maintain spatial awareness.
 
 ---
 
 ## 7. Software Architecture & State Machine
 
-The firmware is designed with an O(1) time complexity approach per loop iteration. Rather than using blocking functions (like `delay()` which halts the CPU), the system uses time-deltas (`millis()`) and sequential threshold logic to guarantee a high refresh rate.
-
-The vehicle evaluates its surroundings against strict distance thresholds: `FORWARD_T = 20`, `LEFT_T = 27`, `RIGHT_T = 20`.
+The firmware is designed with an O(1) time complexity approach per loop iteration. The vehicle evaluates its surroundings against strict distance thresholds: `FORWARD_T = 20`, `LEFT_T = 27`, `RIGHT_T = 20`. These thresholds ensure the vehicle adjusts its path well before it makes physical contact with the walls.
 
 ### State Machine Transition Matrix
 1. **State 0 (Parked & Locked):** 
    * **Condition:** `parked == true`
-   * **Action:** Disregard all navigational logic. Check `millis()` against `parkedTime`. If 5000ms have passed, poll the Front sensor. If `Front > 20`, the exit is clear. Transition to State 1.
+   * **Action:** Disregard all navigational logic. Wait 5000ms. If `Front > 20`, the exit is clear. Transition to State 1 (Unpark).
 2. **State 1 (Enclosure Detection / Parking):** 
    * **Condition:** `Front < 20 && Left < 27 && Right < 20`
-   * **Action:** The vehicle has driven into a 3-sided box. Halt all motors. Set `parked = true`. Record time. Transition to State 0.
+   * **Action:** The vehicle has detected obstacles in all three directions right around the threshold distance. The logic assumes this geometric profile is a parking bay. Halt all motors, set `parked = true`. 
 3. **State 2 (Dead-End Escape):** 
    * **Condition:** `Front < 20 && Left > 35 && Right > 35`
-   * **Action:** The vehicle is facing a wall, but both sides are wide open. Execute a forced Right Turn to re-orient into an open path.
+   * **Action:** The vehicle is facing a wall, but both sides are wide open. Execute a forced Right Turn to re-orient.
 4. **State 3 (Corridor Tracking):** 
    * **Condition:** `Left < 27 && Right < 20 && Front > 20`
    * **Action:** The vehicle is perfectly centered between two walls with a clear path ahead. Maintain Forward Cruise.
@@ -142,18 +133,17 @@ The vehicle evaluates its surroundings against strict distance thresholds: `FORW
    * **Action:** Compare Left and Right distances. Steer towards the side with the larger integer value.
 6. **State 5 (Lateral Correction):** 
    * **Condition:** `Left < 27` OR `Right < 20`
-   * **Action:** If too close to the left, steer right. If too close to the right, steer left. This provides dynamic self-centering behavior.
+   * **Action:** If too close to the left, steer right. If too close to the right, steer left. This provides dynamic self-centering behavior without touching the boundaries.
 
 ---
 
 ## 8. Complete Firmware Implementation
 
-This is the finalized C++ source code to be compiled and uploaded via the Arduino IDE to the ESP32.
-
 ```cpp
 /**
  * Project: Autonomous Valet Parking System
- * Team: Bijli_Ki_Tigdi
+ * Team: Bijli_Ki_Tigdi (Daksh Bhardwaj, Pramodh)
+ * Roll: 2025102066
  * Description: Real-time spatial navigation, obstacle avoidance, and parking slot detection.
  */
 
@@ -320,6 +310,7 @@ void loop() {
   }
 
   // STATE: PARKING BAY DETECTION (3-SIDED ENCLOSURE)
+  // Assumes parked if covered by obstacles in all 3 directions right around the threshold
   if (F < 20 && L < LEFT_T && R < RIGHT_T) {
     performParking();
     return;
@@ -351,7 +342,7 @@ void loop() {
     return;
   }
 
-  // STATE: ASYMMETRIC WALL CORRECTION
+  // STATE: ASYMMETRIC WALL CORRECTION (Prevent Wall Touching)
   if (L < LEFT_T) {
     Serial.println("[STATE] Proximity Alert: Left Wall. CORRECTING RIGHT.");
     turnRight();
